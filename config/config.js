@@ -1,1 +1,0 @@
-exports.server = 'http://star-blades.glitch.me-80.psim.us'

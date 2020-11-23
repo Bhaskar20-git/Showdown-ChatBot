@@ -52,6 +52,7 @@ exports.setup = function (App) {
 					title: a.title,
 					date: date.toISOString(),
 					size: stats ? (Math.floor((stats.size / 1024) * 100) / 100) : 0,
+					state: a.state,
 					psim: App.server.getPokeSimLink("/" + a.id + "-" + a.token),
 				};
 			} catch (ex) {
@@ -130,8 +131,35 @@ exports.setup = function (App) {
 			return;
 		}
 
+		if (spl[0] === "noinit" && spl[1] === "rename") {
+			const newID = Text.toRoomid(spl[2]);
+			BattleLogMod.data.rooms[newID] = BattleLogMod.data.rooms[room];
+			BattleLogMod.data.rooms[newID].id = newID;
+			BattleLogMod.data.rooms[newID].title = spl[3] || "";
+			delete BattleLogMod.data.rooms[room];
+
+			BattleLogMod.active[room].close();
+			delete BattleLogMod.active[room];
+
+			FileSystem.renameSync(Path.resolve(BattleLogMod.path, room + ".log"), Path.resolve(BattleLogMod.path, newID + ".log"));
+
+			BattleLogMod.active[newID] = FileSystem.createWriteStream(Path.resolve(BattleLogMod.path, newID + ".log"), { flags: 'a+' });
+
+			BattleLogMod.saveData();
+			return;
+		}
+
 		if (spl[0] === "title") {
 			BattleLogMod.data.rooms[room].title = spl[1] || "";
+			BattleLogMod.saveData();
+		}
+
+		if (spl[0] === "win") {
+			if (Text.toId(spl[1]) === Text.toId(App.bot.getBotNick())) {
+				BattleLogMod.data.rooms[room].state = "WIN";
+			} else {
+				BattleLogMod.data.rooms[room].state = "LOSE";
+			}
 			BattleLogMod.saveData();
 		}
 
